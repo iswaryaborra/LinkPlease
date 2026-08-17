@@ -25,7 +25,7 @@ def process_webhook_database(
 
     Returns:
         response data,
-        DM objects that need to be queued.
+        DM IDs that need to be queued.
     """
 
     db = SessionLocal()
@@ -91,6 +91,9 @@ def process_webhook_database(
 
         queued_count = 0
         duplicate_dm_count = 0
+
+        # Store IDs instead of SQLAlchemy objects.
+        # This prevents DetachedInstanceError after db.commit().
         dms_to_queue = []
 
         for rule in matching_rules:
@@ -104,11 +107,17 @@ def process_webhook_database(
 
             if created:
                 queued_count += 1
-                dms_to_queue.append(dm)
+
+                # Store the ID while the object is still attached
+                # to the active SQLAlchemy session.
+                dms_to_queue.append(dm.id)
+
             else:
                 duplicate_dm_count += 1
 
         event.duplicates_blocked = duplicate_dm_count
+
+        # Commit all database changes.
         db.commit()
 
         response = {
@@ -144,7 +153,7 @@ async def receive_webhook(
     Flow:
     1. Verify HMAC signature.
     2. Perform blocking database work in a threadpool.
-    3. Queue newly-created DM jobs.
+    3. Queue newly-created DM jobs using their IDs.
     """
 
     settings = get_settings()
@@ -169,7 +178,7 @@ async def receive_webhook(
     # ---------------------------------------------------------
     # Move synchronous SQLAlchemy work off the async event loop.
     # ---------------------------------------------------------
-    response, dms_to_queue = await run_in_threadpool(
+    response, dm_ids_to_queue = await run_in_threadpool(
         process_webhook_database,
         webhook_event,
     )
@@ -177,7 +186,7 @@ async def receive_webhook(
     # ---------------------------------------------------------
     # Queue only after the database transaction has completed.
     # ---------------------------------------------------------
-    for dm in dms_to_queue:
-        await dm_queue.enqueue(dm.id)
+    for dm_id in dm_ids_to_queue:
+        await dm_queue.enqueue(dm_id)
 
     return response
