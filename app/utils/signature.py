@@ -9,12 +9,6 @@ def verify_webhook_signature(
 ) -> bool:
     """
     Verify a PseudoGram webhook signature.
-
-    PseudoGram sends:
-        X-PseudoGram-Signature: sha256=<hex>
-
-    The signature is HMAC-SHA256 of the raw request body
-    using the PseudoGram API key as the secret.
     """
 
     if not signature_header:
