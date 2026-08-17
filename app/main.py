@@ -5,11 +5,14 @@ from fastapi import FastAPI
 
 from app.api.rules import router as rules_router
 from app.api.webhook import router as webhook_router
-from app.database import init_db,SessionLocal
-from app.workers.dm_worker import dm_worker
 from app.api.stats import router as stats_router
+
+from app.database import init_db, SessionLocal
 from app.repositories.dm_repository import DMRepository
+
+from app.workers.dm_worker import dm_worker
 from app.workers.queue import dm_queue
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,7 +31,8 @@ async def lifespan(app: FastAPI):
         queued_dms = dm_repository.get_queued()
 
         for dm in queued_dms:
-            await dm_queue.enqueue(dm)
+            # Store only the DM ID in the in-memory queue.
+            await dm_queue.enqueue(dm.id)
 
     finally:
         db.close()
@@ -37,8 +41,6 @@ async def lifespan(app: FastAPI):
     worker_task = asyncio.create_task(
         dm_worker.run_forever()
     )
-
-   
 
     try:
         yield
@@ -51,7 +53,6 @@ async def lifespan(app: FastAPI):
             await worker_task
         except asyncio.CancelledError:
             pass
-        
 
 
 app = FastAPI(
