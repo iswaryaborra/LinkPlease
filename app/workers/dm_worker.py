@@ -305,7 +305,7 @@ class DMWorker:
                             f"{dm.retry_count}."
                         )
 
-                        await dm_queue.enqueue(dm)
+                        await dm_queue.enqueue(dm.id)
 
                         return
 
