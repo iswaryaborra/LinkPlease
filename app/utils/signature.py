@@ -9,25 +9,31 @@ def verify_webhook_signature(
 ) -> bool:
     """
     Verify a PseudoGram webhook signature.
+
+    PseudoGram sends:
+        X-PseudoGram-Signature: sha256=<hex>
+
+    The signature is HMAC-SHA256 of the raw request body
+    using the PseudoGram API key as the secret.
     """
 
     if not signature_header:
-        print("WEBHOOK SIGNATURE DEBUG: header missing")
+        print(
+            "WEBHOOK SIGNATURE DEBUG: "
+            "header missing"
+        )
         return False
-
-    print(
-        "WEBHOOK SIGNATURE DEBUG:",
-        "header_prefix=",
-        repr(signature_header[:20]),
-        "body_length=",
-        len(raw_body),
-    )
 
     if not signature_header.startswith("sha256="):
-        print("WEBHOOK SIGNATURE DEBUG: invalid prefix")
+        print(
+            "WEBHOOK SIGNATURE DEBUG: "
+            "invalid prefix"
+        )
         return False
 
-    received_signature = signature_header[len("sha256="):].strip()
+    received_signature = (
+        signature_header[len("sha256="):].strip()
+    )
 
     expected_signature = hmac.new(
         secret.encode("utf-8"),
@@ -42,10 +48,12 @@ def verify_webhook_signature(
 
     print(
         "WEBHOOK SIGNATURE DEBUG:",
-        "received_length=",
-        len(received_signature),
-        "expected_length=",
-        len(expected_signature),
+        "body_sha256=",
+        hashlib.sha256(raw_body).hexdigest(),
+        "received_prefix=",
+        received_signature[:16],
+        "expected_prefix=",
+        expected_signature[:16],
         "valid=",
         is_valid,
     )
