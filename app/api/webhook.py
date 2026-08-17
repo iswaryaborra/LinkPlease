@@ -178,6 +178,6 @@ async def receive_webhook(
     # Queue only after the database transaction has completed.
     # ---------------------------------------------------------
     for dm in dms_to_queue:
-        await dm_queue.enqueue(dm)
+        await dm_queue.enqueue(dm.id)
 
     return response
