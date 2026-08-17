@@ -170,6 +170,10 @@ async def receive_webhook(
     )
 
     if not is_valid:
+        print(
+            "WARNING: Invalid webhook signature received. "
+            "Rejecting request."
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid webhook signature",
